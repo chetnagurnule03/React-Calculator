@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>React Calculator</title>
+    
+    <!-- React 18 CDN -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    
+    <!-- Babel for JSX -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+        }
+
+        .calculator-container {
+            background: rgba(255, 255, 255, 0.05);
+            -webkit-backdrop-filter: blur(10px);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+
+            padding: 25px;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            width: 100%;
+            max-width: 400px;
+        }
+
+        .calculator-title {
+            text-align: center;
+            margin-bottom: 20px;
+            font-size: 1.5rem;
+            font-weight: 300;
+            letter-spacing: 2px;
+            color: #e0e0e0;
+        }
+
+        .display {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+            text-align: right;
+            min-height: 100px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .previous-operand {
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 1.2rem;
+            min-height: 30px;
+            word-break: break-all;
+        }
+
+        .current-operand {
+            color: white;
+            font-size: 2.5rem;
+            font-weight: 300;
+            word-break: break-all;
+        }
+
+        .button-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+        }
+
+        button {
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            border-radius: 15px;
+            color: white;
+            font-size: 1.5rem;
+            padding: 25px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-weight: 400;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        button:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px);
+        }
+
+        button:active {
+            transform: translateY(0);
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        .span-two {
+            grid-column: span 2;
+        }
+
+        .operator {
+            background: rgba(255, 149, 0, 0.2);
+            color: #ff9500;
+        }
+
+        .operator:hover {
+            background: rgba(255, 149, 0, 0.3);
+        }
+
+        .equals {
+            background: rgba(52, 199, 89, 0.2);
+            color: #34c759;
+        }
+
+        .equals:hover {
+            background: rgba(52, 199, 89, 0.3);
+        }
+
+        .clear {
+            background: rgba(255, 59, 48, 0.2);
+            color: #ff3b30;
+        }
+
+        .clear:hover {
+            background: rgba(255, 59, 48, 0.3);
+        }
+
+        .zero {
+            grid-column: span 2;
+        }
+
+        @media (max-width: 480px) {
+            .calculator-container {
+                margin: 20px;
+                padding: 20px;
+            }
+
+            button {
+                padding: 20px;
+                font-size: 1.3rem;
+            }
+
+            .current-operand {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useCallback } = React;
+
+        // Calculator Component
+        const Calculator = () => {
+            const [currentOperand, setCurrentOperand] = useState('0');
+            const [previousOperand, setPreviousOperand] = useState('');
+            const [operation, setOperation] = useState(null);
+            const [shouldResetScreen, setShouldResetScreen] = useState(false);
+
+            const clearAll = useCallback(() => {
+                setCurrentOperand('0');
+                setPreviousOperand('');
+                setOperation(null);
+                setShouldResetScreen(false);
+            }, []);
+
+            const clear = useCallback(() => {
+                setCurrentOperand('0');
+            }, []);
+
+            const deleteNumber = useCallback(() => {
+                if (currentOperand === '0') return;
+                if (currentOperand.length === 1) {
+                    setCurrentOperand('0');
+                } else {
+                    setCurrentOperand(currentOperand.slice(0, -1));
+                }
+            }, [currentOperand]);
+
+            const appendNumber = useCallback((number) => {
+                if (shouldResetScreen) {
+                    setCurrentOperand(number);
+                    setShouldResetScreen(false);
+                } else {
+                    if (currentOperand === '0' && number !== '.') {
+                        setCurrentOperand(number);
+                    } else if (number === '.' && currentOperand.includes('.')) {
+                        return;
+                    } else {
+                        setCurrentOperand(currentOperand + number);
+                    }
+                }
+            }, [currentOperand, shouldResetScreen]);
+
+            const chooseOperation = useCallback((op) => {
+                if (currentOperand === '') return;
+                
+                if (previousOperand !== '' && !shouldResetScreen) {
+                    // Perform pending calculation first
+                    const prev = parseFloat(previousOperand);
+                    const current = parseFloat(currentOperand);
+                    let result;
+                    
+                    switch (operation) {
+                        case '+':
+                            result = prev + current;
+                            break;
+                        case '−':
+                            result = prev - current;
+                            break;
+                        case '×':
+                            result = prev * current;
+                            break;
+                        case '÷':
+                            if (current === 0) {
+                                alert('Cannot divide by zero!');
+                                return;
+                            }
+                            result = prev / current;
+                            break;
+                        default:
+                            return;
+                    }
+                    
+                    const resultString = result.toString();
+                    setPreviousOperand(resultString);
+                    setCurrentOperand(resultString);
+                    setShouldResetScreen(true);
+                    setOperation(op);
+                } else {
+                    setPreviousOperand(currentOperand);
+                    setOperation(op);
+                    setShouldResetScreen(true);
+                }
+            }, [currentOperand, previousOperand, operation, shouldResetScreen]);
+
+            const calculate = useCallback(() => {
+                if (operation === null || previousOperand === '') return;
+                
+                const prev = parseFloat(previousOperand);
+                const current = parseFloat(currentOperand);
+                let result;
+                
+                switch (operation) {
+                    case '+':
+                        result = prev + current;
+                        break;
+                    case '−':
+                        result = prev - current;
+                        break;
+                    case '×':
+                        result = prev * current;
+                        break;
+                    case '÷':
+                        if (current === 0) {
+                            alert('Cannot divide by zero!');
+                            return;
+                        }
+                        result = prev / current;
+                        break;
+                    default:
+                        return;
+                }
+                
+                // Format result to avoid long decimals
+                const resultString = parseFloat(result.toFixed(10)).toString();
+                
+                setCurrentOperand(resultString);
+                setPreviousOperand('');
+                setOperation(null);
+                setShouldResetScreen(true);
+            }, [currentOperand, previousOperand, operation]);
+
+            const getDisplayNumber = (number) => {
+                const stringNumber = number.toString();
+                const integerDigits = parseFloat(stringNumber.split('.')[0]);
+                const decimalDigits = stringNumber.split('.')[1];
+                
+                let integerDisplay;
+                if (isNaN(integerDigits)) {
+                    integerDisplay = '';
+                } else {
+                    integerDisplay = integerDigits.toLocaleString('en', { maximumFractionDigits: 0 });
+                }
+                
+                if (decimalDigits != null) {
+                    return `${integerDisplay}.${decimalDigits}`;
+                } else {
+                    return integerDisplay;
+                }
+            };
+
+            const formatDisplay = (value) => {
+                if (value === '0' || value === '') return value;
+                return getDisplayNumber(value);
+            };
+
+            const buttons = [
+                { label: 'AC', className: 'clear span-two', onClick: clearAll },
+                { label: 'DEL', className: 'clear', onClick: deleteNumber },
+                { label: '÷', className: 'operator', onClick: () => chooseOperation('÷') },
+                { label: '1', onClick: () => appendNumber('1') },
+                { label: '2', onClick: () => appendNumber('2') },
+                { label: '3', onClick: () => appendNumber('3') },
+                { label: '×', className: 'operator', onClick: () => chooseOperation('×') },
+                { label: '4', onClick: () => appendNumber('4') },
+                { label: '5', onClick: () => appendNumber('5') },
+                { label: '6', onClick: () => appendNumber('6') },
+                { label: '−', className: 'operator', onClick: () => chooseOperation('−') },
+                { label: '7', onClick: () => appendNumber('7') },
+                { label: '8', onClick: () => appendNumber('8') },
+                { label: '9', onClick: () => appendNumber('9') },
+                { label: '+', className: 'operator', onClick: () => chooseOperation('+') },
+                { label: '.', onClick: () => appendNumber('.') },
+                { label: '0', className: 'zero', onClick: () => appendNumber('0') },
+                { label: '=', className: 'equals', onClick: calculate },
+
+            ];
+
+            return (
+                <div className="calculator-container">
+                    <h1 className="calculator-title">React Calculator</h1>
+                    
+                    <div className="display">
+                        <div className="previous-operand">
+                            {previousOperand} {operation || ''}
+                        </div>
+                        <div className="current-operand">
+                            {formatDisplay(currentOperand)}
+                        </div>
+                    </div>
+                    
+                    <div className="button-grid">
+                        {buttons.map((button, index) => (
+                            <button
+                                key={index}
+                                className={button.className || ''}
+                                onClick={button.onClick}
+                            >
+                                {button.label}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+            );
+        };
+
+        // Render the app
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<Calculator />);
+    </script>
+</body>
+</html>
